@@ -3,12 +3,58 @@
   var CanvasRenderer = $$('renderer', 'canvas');
 
   // Draw node
-  CanvasRenderer.prototype.drawNode = function(context, node, drawOverlayInstead) {
+  CanvasRenderer.prototype.drawNode = function(context, node, drawOverlayInstead){
+    var r = this;
+    var _p = node._private;
+    var rs = _p.rscratch;
+    var tx;
+    var pos = _p.position;
+    var width = node.outerWidth();
+    var height = node.outerHeight();
+    var zoom = cy.zoom();
+    var scale = 4;
+
+    if( drawOverlayInstead || true ){ // overlays never cached
+      r.drawNodeImmediate( context, node, drawOverlayInstead );
+      return;
+    }
+
+    if( !rs.texture ){
+      tx = rs.texture = {};
+
+      tx.canvas = document.createElement('canvas');
+      tx.context = tx.canvas.getContext('2d');
+    }
+    tx = rs.texture;
+
+    var txCacheHit = tx.styleKey === _p.styleKey;
+    if( !txCacheHit ){ // then we have to draw the node from scratch
+      
+      tx.canvas.width = (width + 2) * scale;
+      tx.canvas.height = (height + 2) * scale;
+
+      // s.t. node is drawn in the texture bounds rather than off on its own position
+      tx.context.setTransform( 1, 0, 0, 1, 0, 0 );
+      tx.context.scale( scale, scale );
+      tx.context.translate( -pos.x + 1, -pos.y + 1 );
+      tx.context.translate( width/2, height/2 );
+
+      r.drawNodeImmediate( tx.context, node );
+
+      tx.styleKey = _p.styleKey;
+    }
+
+    context.drawImage( tx.canvas, 1*scale, 1*scale, width*scale, height*scale, pos.x - width/2, pos.y - height/2, width, height );
+  };
+
+  // Draw node via style instructions
+  CanvasRenderer.prototype.drawNodeImmediate = function(context, node, drawOverlayInstead) {
 
     var r = this;
     var nodeWidth, nodeHeight;
     var style = node._private.style;
     var rs = node._private.rscratch;
+    var _p = node._private;
     
     var usePaths = CanvasRenderer.usePaths();
     var canvasContext = context;

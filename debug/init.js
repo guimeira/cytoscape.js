@@ -92,7 +92,7 @@ $(function(){
       name: 'canvas'
     },
     layout: {
-      name: 'arbor',
+      name: 'grid',
       infinite: true
     },
     style: defaultSty,
